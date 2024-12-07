@@ -1,0 +1,74 @@
+## Ignore build results
+/bin/
+/obj/
+
+## Ignore user-specific files
+*.user
+*.userosscache
+*.suo
+*.userprefs
+
+## Ignore Visual Studio for Mac files
+.vscode/
+
+## ASP.NET Core files
+wwwroot/
+node_modules/
+bower_components/
+
+## .NET Core tools
+dotnet-tools/
+
+## Logs
+logs/
+*.log
+
+## Local development settings
+appsettings.Development.json
+
+## Temporary files
+temp/
+tmp/
+
+## User-specific config files
+*.swp
+.idea/
+*.iml
+
+## Ignore publish directory
+publish/
+
+## Ignore build directories for the SDK-style projects
+*.dll
+*.pdb
+*.exe
+*.bak
+*.swp
+
+## Ignore files related to specific development environments
+.vs/
+
+## Ignore JetBrains Rider files
+.idea/
+
+## Ignore npm log files
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+## Ignore NuGet packages
+*.nupkg
+.nuget/
+
+## Ignore .NET global tools
+global.json
+
+## Ignore ASP.NET Core identity files
+Identity/
+
+## Ignore backup files
+*~  
+
+## Ignore build results
+/BackendServer/bin/
+/BackendServer/obj
