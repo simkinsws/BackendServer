@@ -133,11 +133,13 @@ namespace BackendServer
 
 
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            // if (app.Environment.IsDevelopment()) // better for real application to devide by environments.
+            app.UseSwagger();
+            app.UseSwaggerUI(options =>
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+                options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+                options.RoutePrefix = string.Empty;
+            });
 
             app.UseHttpsRedirection();
 
