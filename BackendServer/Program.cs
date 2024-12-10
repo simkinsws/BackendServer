@@ -1,5 +1,6 @@
 
 using BackendServer.Data;
+using BackendServer.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -57,6 +58,40 @@ namespace BackendServer
             app.UseDefaultFiles();
             app.UseStaticFiles();
             app.MapIdentityApi<ApplicationUser>();
+
+            app.MapPost("/api/posts/create", async (PostRequestDto postDto, HttpContext httpContext, ApplicationDbContext dbContext, UserManager<ApplicationUser> userManager) =>
+            {
+                // Get the logged-in user's ID
+                var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Results.Unauthorized();
+                }
+
+                // Retrieve the user from the database (optional for validation)
+                var user = await userManager.FindByIdAsync(userId);
+                if (user == null)
+                {
+                    return Results.NotFound("User not found.");
+                }
+
+                // Create a new post and assign it to the user
+                var newPost = new Post
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    PostId = postDto.PostId,
+                    UserId = userId,
+                    // Add other fields from the DTO as necessary
+                };
+
+                dbContext.Posts.Add(newPost);
+                await dbContext.SaveChangesAsync();
+
+                return Results.Ok(newPost);
+            })
+            .RequireAuthorization();
+
 
             app.MapPut("/update-phone-number", async (UserManager<ApplicationUser> userManager, ClaimsPrincipal user, string newPhoneNumber) =>
             {
