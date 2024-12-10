@@ -1,6 +1,6 @@
 
 using BackendServer.Data;
-using BackendServer.Models;
+using BackendServer.Models.Posts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -31,17 +31,6 @@ namespace BackendServer
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
-
-            // Apply migrations at startup (optional if you're using migrations)
-            //using (var scope = app.Services.CreateScope())
-            //{
-            //    var serviceProvider = scope.ServiceProvider;
-            //    var dbContext = serviceProvider.GetRequiredService<ApplicationDbContext>();
-            //    var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-
-            //    // Seed roles (only once)
-            //    await RoleSeeder.SeedRolesAsync(serviceProvider, app.Environment);
-            //}
 
             // Apply migrations at startup (optional if you're using migrations)
             using (var scope = app.Services.CreateScope())
@@ -76,21 +65,39 @@ namespace BackendServer
                     return Results.NotFound("User not found.");
                 }
 
+                // Convert Base64 string to byte array
+                byte[]? imageData = null;
+                if (!string.IsNullOrEmpty(postDto.ImageBase64))
+                {
+                    try
+                    {
+                        imageData = Convert.FromBase64String(postDto.ImageBase64);
+                    }
+                    catch (FormatException)
+                    {
+                        return Results.BadRequest("Invalid image format.");
+                    }
+                }
+
                 // Create a new post and assign it to the user
                 var newPost = new Post
                 {
                     Id = Guid.NewGuid().ToString(),
-                    PostId = postDto.PostId,
-                    UserId = userId,
-                    // Add other fields from the DTO as necessary
+                    BranchName = postDto.BranchName,
+                    ContactName = postDto.ContactName,
+                    PhoneNumber = postDto.PhoneNumber,
+                    Description = postDto.Description,
+                    ImageData = imageData,
+                    UserId = userId
                 };
 
                 dbContext.Posts.Add(newPost);
                 await dbContext.SaveChangesAsync();
 
                 return Results.Ok(newPost);
-            })
-            .RequireAuthorization();
+            }).RequireAuthorization();
+
+
 
 
             app.MapPut("/update-phone-number", async (UserManager<ApplicationUser> userManager, ClaimsPrincipal user, string newPhoneNumber) =>
@@ -130,6 +137,59 @@ namespace BackendServer
                 var email = user.FindFirstValue(ClaimTypes.Email); // get the user's email from the claim
                 return Results.Json(new { Email = email }); ; // return the email as a plain text response
             }).RequireAuthorization();
+
+            app.MapGet("/api/posts/mine", async (HttpContext httpContext, ApplicationDbContext dbContext) =>
+            {
+                // Get the logged-in user's ID from the claims
+                var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Results.Unauthorized();
+                }
+
+                // Fetch the user's posts from the database
+                var userPosts = await dbContext.Posts
+                    .Where(p => p.UserId == userId)
+                    .ToListAsync();
+
+                return Results.Ok(userPosts);
+            })
+            .RequireAuthorization(); // Ensure the user is authenticated
+
+
+            app.MapGet("/api/posts/user/{identifier}", async (string identifier, HttpContext httpContext, ApplicationDbContext dbContext, UserManager<ApplicationUser> userManager) =>
+            {
+                // Check if the logged-in user is an Admin
+                if (!httpContext.User.IsInRole("Admin"))
+                {
+                    return Results.Forbid();
+                }
+
+                // Determine if the identifier is a UserName or UserId
+                ApplicationUser user;
+                if (Guid.TryParse(identifier, out _)) // If it's a GUID, assume it's a UserId
+                {
+                    user = await userManager.FindByIdAsync(identifier);
+                }
+                else // Otherwise, assume it's a UserName
+                {
+                    user = await userManager.FindByNameAsync(identifier);
+                }
+
+                if (user == null)
+                {
+                    return Results.NotFound("User not found.");
+                }
+
+                // Fetch the posts for the specified user
+                var userPosts = await dbContext.Posts
+                    .Where(p => p.UserId == user.Id)
+                    .ToListAsync();
+
+                return Results.Ok(userPosts);
+            })
+            .RequireAuthorization("AdminPolicy"); // Only Admins can access this endpoint
 
 
             // Configure the HTTP request pipeline.
