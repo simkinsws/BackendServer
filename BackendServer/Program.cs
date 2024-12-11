@@ -95,12 +95,12 @@ namespace BackendServer
                 await dbContext.SaveChangesAsync();
 
                 return Results.Ok(newPost);
-            }).RequireAuthorization();
+            }).RequireAuthorization().WithTags("Posts Endpoints");
 
 
 
 
-            app.MapPut("/update-phone-number", async (UserManager<ApplicationUser> userManager, ClaimsPrincipal user, string newPhoneNumber) =>
+            app.MapPut("/api/users/update-phone-number", async (UserManager<ApplicationUser> userManager, ClaimsPrincipal user, string newPhoneNumber) =>
             {
                 var currentUser = await userManager.GetUserAsync(user);
                 if (currentUser == null)
@@ -120,23 +120,23 @@ namespace BackendServer
                 {
                     return Results.BadRequest("Failed to update phone number.");
                 }
-            }).RequireAuthorization();
+            }).RequireAuthorization().WithTags("Users Endpoints");
 
 
-            app.MapPost("/logout", async (SignInManager<ApplicationUser> signInManager) =>
+            app.MapPost("api/users/logout", async (SignInManager<ApplicationUser> signInManager) =>
             {
 
                 await signInManager.SignOutAsync();
                 return Results.Ok();
 
-            }).RequireAuthorization();
+            }).RequireAuthorization().WithTags("Users Endpoints");
 
 
-            app.MapGet("/pingauth", (ClaimsPrincipal user) =>
+            app.MapGet("/api/users/pingauth", (ClaimsPrincipal user) =>
             {
                 var email = user.FindFirstValue(ClaimTypes.Email); // get the user's email from the claim
                 return Results.Json(new { Email = email }); ; // return the email as a plain text response
-            }).RequireAuthorization();
+            }).RequireAuthorization().WithTags("User Claims");
 
             app.MapGet("/api/users/userRole", async (HttpContext httpContext, ClaimsPrincipal user, ApplicationDbContext dbContext) =>
             {
@@ -151,7 +151,7 @@ namespace BackendServer
                 }
 
                 return Results.Ok(userRole);
-            });
+            }).WithTags("User Claims");
 
             app.MapGet("/api/posts/mine", async (HttpContext httpContext, ApplicationDbContext dbContext) =>
             {
@@ -169,7 +169,7 @@ namespace BackendServer
 
                 return Results.Ok(userPosts);
             })
-            .RequireAuthorization(); // Ensure the user is authenticated
+            .RequireAuthorization().WithTags("Posts Endpoints"); // Ensure the user is authenticated
 
 
             app.MapGet("/api/posts/user/{identifier}", async (string identifier, HttpContext httpContext, ApplicationDbContext dbContext, UserManager<ApplicationUser> userManager) =>
@@ -203,7 +203,7 @@ namespace BackendServer
 
                 return Results.Ok(userPosts);
             })
-            .RequireAuthorization(); // Only Admins can access this endpoint
+            .RequireAuthorization().WithTags("Posts Endpoints"); // Only Admins can access this endpoint
 
 
             // Configure the HTTP request pipeline.
