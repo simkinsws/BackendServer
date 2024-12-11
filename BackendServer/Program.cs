@@ -138,11 +138,25 @@ namespace BackendServer
                 return Results.Json(new { Email = email }); ; // return the email as a plain text response
             }).RequireAuthorization();
 
+            app.MapGet("/api/users/userRole", async (HttpContext httpContext, ClaimsPrincipal user, ApplicationDbContext dbContext) =>
+            {
+                // Get the logged-in user's ID from the claims
+                var userRole = user.Claims
+                        .Where(c => c.Type == ClaimTypes.Role)
+                        .Select(c => c.Value)
+                        .ToList().FirstOrDefault();
+                if (string.IsNullOrEmpty(userRole))
+                {
+                    return Results.NotFound();
+                }
+
+                return Results.Ok(userRole);
+            });
+
             app.MapGet("/api/posts/mine", async (HttpContext httpContext, ApplicationDbContext dbContext) =>
             {
                 // Get the logged-in user's ID from the claims
                 var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-
                 if (string.IsNullOrEmpty(userId))
                 {
                     return Results.Unauthorized();
@@ -189,7 +203,7 @@ namespace BackendServer
 
                 return Results.Ok(userPosts);
             })
-            .RequireAuthorization("AdminPolicy"); // Only Admins can access this endpoint
+            .RequireAuthorization(); // Only Admins can access this endpoint
 
 
             // Configure the HTTP request pipeline.
@@ -198,7 +212,7 @@ namespace BackendServer
             app.UseSwaggerUI(options =>
             {
                 options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
-                options.RoutePrefix = string.Empty;
+                options.RoutePrefix = "swagger";
             });
 
             app.UseHttpsRedirection();
