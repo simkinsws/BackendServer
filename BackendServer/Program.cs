@@ -30,6 +30,17 @@ namespace BackendServer
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowLocalhost3000", policy =>
+                {
+                    policy.WithOrigins("http://localhost:3000")  // Frontend URL
+                          .AllowAnyMethod()                   // Allow any HTTP method (GET, POST, etc.)
+                          .AllowAnyHeader()                   // Allow any headers
+                          .AllowCredentials();                // Allow credentials (cookies, authorization headers)
+                });
+            });
+
             var app = builder.Build();
 
             // Apply migrations at startup (optional if you're using migrations)
@@ -46,6 +57,8 @@ namespace BackendServer
 
             app.UseDefaultFiles();
             app.UseStaticFiles();
+            app.UseCors("AllowLocalhost3000");
+
             app.MapIdentityApi<ApplicationUser>();
 
             app.MapPost("/api/posts/create", async (PostRequestDto postDto, HttpContext httpContext, ApplicationDbContext dbContext, UserManager<ApplicationUser> userManager) =>
