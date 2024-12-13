@@ -32,9 +32,10 @@ namespace BackendServer
 
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy("AllowLocalhost3000", policy =>
+                options.AddPolicy("AllowFrontend", policy =>
                 {
-                    policy.WithOrigins("http://localhost:3000")  // Frontend URL
+                    policy.WithOrigins("http://localhost:3000")
+                          .WithOrigins("https://proud-forest-04617c61e.4.azurestaticapps.net")  // Frontend URL
                           .AllowAnyMethod()                   // Allow any HTTP method (GET, POST, etc.)
                           .AllowAnyHeader()                   // Allow any headers
                           .AllowCredentials();                // Allow credentials (cookies, authorization headers)
@@ -57,7 +58,7 @@ namespace BackendServer
 
             app.UseDefaultFiles();
             app.UseStaticFiles();
-            app.UseCors("AllowLocalhost3000");
+            app.UseCors("AllowFrontend");
 
             app.MapIdentityApi<ApplicationUser>();
 
