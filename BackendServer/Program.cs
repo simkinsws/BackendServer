@@ -67,7 +67,7 @@ namespace BackendServer
 
             app.MapPost("/reset-password", async (
                     [FromBody] ResetPasswordRequest request,
-                    UserManager<IdentityUser> userManager
+                    UserManager<ApplicationUser> userManager
                 ) =>
             {
                 var user = await userManager.FindByNameAsync(request.Email)
