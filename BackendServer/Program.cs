@@ -65,6 +65,41 @@ namespace BackendServer
 
             app.MapIdentityApi<ApplicationUser>();
 
+            app.MapPost("/reset-password", async (
+                    [FromBody] ResetPasswordRequest request,
+                    UserManager<IdentityUser> userManager
+                ) =>
+            {
+                var user = await userManager.FindByNameAsync(request.Email)
+                           ?? await userManager.FindByEmailAsync(request.Email);
+                if (user == null)
+                {
+                    return Results.NotFound(new { Message = "User not found." });
+                }
+
+                // Check for password validity (optional, ensures password meets policy)
+                var passwordValidationResult = await userManager.PasswordValidators[0].ValidateAsync(userManager, user, request.NewPassword);
+                if (!passwordValidationResult.Succeeded)
+                {
+                    return Results.ValidationProblem(passwordValidationResult.Errors.ToDictionary(e => e.Code, e => new[] { e.Description }));
+                }
+
+                // Reset the password directly
+                var resetResult = await userManager.RemovePasswordAsync(user);
+                if (!resetResult.Succeeded)
+                {
+                    return Results.ValidationProblem(resetResult.Errors.ToDictionary(e => e.Code, e => new[] { e.Description }));
+                }
+
+                var addPasswordResult = await userManager.AddPasswordAsync(user, request.NewPassword);
+                if (!addPasswordResult.Succeeded)
+                {
+                    return Results.ValidationProblem(addPasswordResult.Errors.ToDictionary(e => e.Code, e => new[] { e.Description }));
+                }
+
+                return Results.Ok(new { Message = "Password reset successful." });
+            });
+
             app.MapPost("/api/admin/registerUser", async Task<IResult> ([FromBody] RegisterRequest registration, ClaimsPrincipal userClaims, [FromServices] UserManager<ApplicationUser> userManager, [FromServices] RoleManager<IdentityRole> roleManager) =>
             {
                 var userRole = userClaims.Claims
