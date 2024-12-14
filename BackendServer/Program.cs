@@ -2,7 +2,10 @@
 using BackendServer.Data;
 using BackendServer.Models.Posts;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.Data;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
 namespace BackendServer
@@ -61,6 +64,51 @@ namespace BackendServer
             app.UseCors("AllowFrontend");
 
             app.MapIdentityApi<ApplicationUser>();
+
+            app.MapPost("/api/admin/registerUser", async Task<IResult> ([FromBody] RegisterRequest registration, ClaimsPrincipal userClaims, [FromServices] UserManager<ApplicationUser> userManager, [FromServices] RoleManager<IdentityRole> roleManager) =>
+            {
+                var userRole = userClaims.Claims
+                        .Where(c => c.Type == ClaimTypes.Role)
+                        .Select(c => c.Value)
+                        .ToList().FirstOrDefault();
+                if (string.IsNullOrEmpty(userRole) || !userRole.Equals("Admin"))
+                {
+                    return Results.Forbid();
+                }    
+                // Email validation
+                if (string.IsNullOrEmpty(registration.Email) || !new EmailAddressAttribute().IsValid(registration.Email))
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        { "Email", new[] { "Invalid email format." } }
+                    });
+                }
+
+                // Create a new user
+                var user = new ApplicationUser { UserName = registration.Email, Email = registration.Email };
+                var result = await userManager.CreateAsync(user, registration.Password);
+
+                if (!result.Succeeded)
+                {
+                    return Results.ValidationProblem(result.Errors
+                        .ToDictionary(e => e.Code, e => new[] { e.Description }));
+                }
+
+                // Assign default "User" role if it doesn't exist
+                var defaultRole = "User";
+                var roleExists = await roleManager.RoleExistsAsync(defaultRole);
+                if (!roleExists)
+                {
+                    // Create the "User" role if it doesn't exist
+                    await roleManager.CreateAsync(new IdentityRole(defaultRole));
+                }
+
+                // Assign the "User" role to the newly created user
+                await userManager.AddToRoleAsync(user, defaultRole);
+
+                // Return success response without email confirmation
+                return Results.Ok(new { Message = "Registration successful." });
+            }).RequireAuthorization().WithTags("Admin Endpoints");
 
             app.MapPost("/api/posts/create", async (PostRequestDto postDto, HttpContext httpContext, ApplicationDbContext dbContext, UserManager<ApplicationUser> userManager) =>
             {
@@ -152,7 +200,7 @@ namespace BackendServer
                 return Results.Json(new { Email = email }); ; // return the email as a plain text response
             }).RequireAuthorization().WithTags("User Claims");
 
-            app.MapGet("/api/users/userRole", async (HttpContext httpContext, ClaimsPrincipal user, ApplicationDbContext dbContext) =>
+            app.MapGet("/api/users/userRole", async (ClaimsPrincipal user, ApplicationDbContext dbContext) =>
             {
                 // Get the logged-in user's ID from the claims
                 var userRole = user.Claims
