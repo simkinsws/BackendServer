@@ -185,7 +185,8 @@ namespace BackendServer
                     PhoneNumber = postDto.PhoneNumber,
                     Description = postDto.Description,
                     ImageData = imageData,
-                    UserId = userId
+                    UserId = userId,
+                    Status = "Open"
                 };
 
                 dbContext.Posts.Add(newPost);
@@ -193,9 +194,6 @@ namespace BackendServer
 
                 return Results.Ok(newPost);
             }).RequireAuthorization().WithTags("Posts Endpoints");
-
-
-
 
             app.MapPut("/api/users/update-phone-number", async (UserManager<ApplicationUser> userManager, ClaimsPrincipal user, string newPhoneNumber) =>
             {
