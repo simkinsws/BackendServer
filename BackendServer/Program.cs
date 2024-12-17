@@ -185,6 +185,7 @@ namespace BackendServer
                     PhoneNumber = postDto.PhoneNumber,
                     Description = postDto.Description,
                     ImageData = imageData,
+                    ImageMimeType = postDto.ImageMimeType,
                     UserId = userId,
                     Status = "Open"
                 };
