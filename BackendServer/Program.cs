@@ -267,6 +267,19 @@ namespace BackendServer
             })
             .RequireAuthorization().WithTags("Posts Endpoints"); // Ensure the user is authenticated
 
+            app.MapGet("/api/posts/all", async (HttpContext httpContext, ApplicationDbContext dbContext) =>
+            {
+                // Check if the logged-in user is an Admin
+                if (!httpContext.User.IsInRole("Admin"))
+                {
+                    return Results.Forbid();
+                }
+
+                var allPosts = await dbContext.Posts.ToListAsync();
+
+                return Results.Ok(allPosts);
+            })
+            .RequireAuthorization().WithTags("Admin Endpoints"); // Only Admins can access this endpoint
 
             app.MapGet("/api/posts/user/{identifier}", async (string identifier, HttpContext httpContext, ApplicationDbContext dbContext, UserManager<ApplicationUser> userManager) =>
             {
