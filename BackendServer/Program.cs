@@ -196,6 +196,39 @@ namespace BackendServer
                 return Results.Ok(newPost);
             }).RequireAuthorization().WithTags("Posts Endpoints");
 
+            app.MapPut("/api/post/update", async (PostUpdateDto postUpdateDto, ApplicationDbContext dbContext, HttpContext httpContext) => {
+                if(!httpContext.User.IsInRole("Admin"))
+                {
+                    return Results.Forbid();
+                }
+
+                var post = await dbContext.Posts.SingleOrDefaultAsync(post => post.Id == postUpdateDto.Id);
+                if (post != null) 
+                {
+                    byte[]? imageData = null;
+                    if (!string.IsNullOrEmpty(postUpdateDto.ImageBase64))
+                    {
+                        try
+                        {
+                            imageData = Convert.FromBase64String(postUpdateDto.ImageBase64);
+                        }
+                        catch (FormatException)
+                        {
+                            return Results.BadRequest("Invalid image format.");
+                        }
+                    }
+                    post.Status = postUpdateDto!.Status!.Equals(post.Status) ? post.Status : postUpdateDto.Status ;
+                    post.Description = postUpdateDto!.Description!.Equals(post.Description) ? post.Description : postUpdateDto.Description;
+                    if(imageData != null)
+                    {
+                        post.ImageData = imageData!.Equals(post.ImageData) ? post.ImageData : imageData;
+                        post.ImageMimeType = postUpdateDto!.ImageMimeType!.Equals(post.ImageMimeType) ? post.ImageMimeType : postUpdateDto.ImageMimeType;
+                    }
+                }
+                await dbContext.SaveChangesAsync();
+                return Results.Ok(post);
+            }).RequireAuthorization().WithTags("Posts Endpoints");
+
             app.MapPut("/api/users/update-phone-number", async (UserManager<ApplicationUser> userManager, ClaimsPrincipal user, string newPhoneNumber) =>
             {
                 var currentUser = await userManager.GetUserAsync(user);
